@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+:root {
+  /* Paleta Roxana Ica Aesthetic */
+  --ivory: #F8F6F2;
+  --beige: #E8E1D8;
+  --beige-light: #F4F0EC;
+  --taupe: #4A403A;
+  --taupe-light: #7A6F66;
+  --gold: #C6A769;
+  --gold-light: #D4BC8A;
+  --gold-pale: #F0E8D8;
+  --rose: #E8C4B8;
+  --rose-light: #F4DDD6;
+  --bronze: #9A7B5A;
+
+  --font-cormorant: 'Cormorant Garamond', Georgia, serif;
+  --font-montserrat: 'Montserrat', system-ui, sans-serif;
+
+  /* Sidebar dimensions */
+  --sidebar-width: 240px;
+  --bottomnav-height: 64px;
+}
+
+body {
+  background-color: var(--ivory);
+  color: var(--taupe);
+  font-family: var(--font-montserrat);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--beige-light);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--beige);
+  border-radius: 2px;
+}
