@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, ChevronRight, ChevronLeft, Check } from 'lucide-react';
@@ -13,7 +13,7 @@ const schema = z.object({
   discount_type: z.enum(['percent', 'fixed', '']).optional(),
   discount_value: z.coerce.number().min(0).optional(),
   discount_reason: z.string().optional(),
-  payment_method: z.enum(['cash', 'card', 'transfer', 'pachet']).default('cash'),
+  payment_method: z.enum(['cash', 'card', 'transfer', 'pachet']),
   treatment_date: z.string().min(1, 'Selectează data'),
   treatment_time: z.string().optional(),
   technician_notes: z.string().optional(),
@@ -82,7 +82,7 @@ export default function TreatmentForm({
     );
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
     setLoading(true);
     try {
       const res = await fetch('/api/treatments', {
