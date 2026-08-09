@@ -17,7 +17,7 @@ function supabase() {
 }
 
 interface Client { id: string; first_name: string; last_name: string; phone: string | null; }
-interface Service { id: string; name: string; price: number; duration_minutes: number; category_name: string; }
+interface Service { id: string; name: string; price: number; duration_minutes: number; category_name: string; operator_cost: number; consumables_cost: number; other_costs: number; }
 
 const PAYMENT_METHODS = ['cash', 'card', 'transfer', 'virement'];
 
@@ -57,11 +57,12 @@ export default function NewTreatmentPage() {
   async function loadServices() {
     const { data } = await supabase()
       .from('services')
-      .select('id, name, price, duration_minutes, service_categories(name)')
+      .select('id, name, price, duration_minutes, operator_cost, consumables_cost, other_costs, service_categories(name)')
       .eq('is_active', true)
+      .neq('is_archived', true)
       .order('name');
-    const mapped = ((data as unknown) as { id: string; name: string; price: number; duration_minutes: number; service_categories: { name: string } | null }[])
-      ?.map(s => ({ id: s.id, name: s.name, price: s.price, duration_minutes: s.duration_minutes, category_name: s.service_categories?.name || 'Altele' })) || [];
+    const mapped = ((data as unknown) as { id: string; name: string; price: number; duration_minutes: number; operator_cost: number; consumables_cost: number; other_costs: number; service_categories: { name: string } | null }[])
+      ?.map(s => ({ id: s.id, name: s.name, price: s.price, duration_minutes: s.duration_minutes, operator_cost: s.operator_cost || 0, consumables_cost: s.consumables_cost || 0, other_costs: s.other_costs || 0, category_name: s.service_categories?.name || 'Altele' })) || [];
     setServices(mapped);
   }
 
@@ -89,7 +90,7 @@ export default function NewTreatmentPage() {
     setSaving(true);
 
     const price = parseFloat(finalPrice);
-    const costSnapshot = Math.round(selectedService.price * 0.25);
+    const costSnapshot = (selectedService.operator_cost || 0) + (selectedService.consumables_cost || 0) + (selectedService.other_costs || 0);
 
     const { error: insertError } = await supabase().from('treatments').insert({
       client_id: selectedClient.id,
