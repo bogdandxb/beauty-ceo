@@ -28,6 +28,7 @@ const navItems = [
   { href: '/calendar', label: 'Calendar', icon: Calendar },
   { href: '/marketing', label: 'Marketing', icon: Megaphone },
   { href: '/inventory', label: 'Inventar', icon: Package },
+  { href: '/inventory/report', label: 'Raport Lunar', icon: Package, indent: true },
   { href: '/targets', label: 'Targete', icon: Target },
   { href: '/settings', label: 'Setări', icon: Settings },
 ];
