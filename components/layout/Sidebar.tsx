@@ -14,6 +14,7 @@ import {
   Package,
   Target,
   Settings,
+  PlusCircle,
 } from 'lucide-react';
 
 const navItems = [
@@ -87,11 +88,15 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-4 py-4 border-t border-white/10">
-        <p className="text-white/25 text-xs text-center">
-          beauty-ceo v1.0
-        </p>
+      {/* CTA Tratament */}
+      <div className="px-3 py-4 border-t border-white/10">
+        <Link href="/treatments/new"
+          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-xs font-semibold transition-all"
+          style={{ background: 'var(--gold)', color: 'white', letterSpacing: '0.04em' }}>
+          <PlusCircle size={14} />
+          Tratament nou
+        </Link>
+        <p className="text-white/20 text-xs text-center mt-3">beauty-ceo v1.0</p>
       </div>
     </div>
   );
