@@ -18,11 +18,12 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/overview', label: 'Overview', icon: TrendingUp },
+  { href: '/overview', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/finance', label: 'Finanțe', icon: DollarSign },
+  { href: '/finance/expenses', label: 'Cheltuieli', icon: DollarSign, indent: true },
   { href: '/clients', label: 'Clientele', icon: Users },
   { href: '/services', label: 'Servicii', icon: Scissors },
+  { href: '/services/manage', label: 'Gestionare', icon: Scissors, indent: true },
   { href: '/equipment', label: 'Aparatură', icon: Wrench },
   { href: '/calendar', label: 'Calendar', icon: Calendar },
   { href: '/marketing', label: 'Marketing', icon: Megaphone },
@@ -59,30 +60,30 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive =
-            href === '/' ? pathname === '/' : pathname.startsWith(href);
+        {navItems.map(({ href, label, icon: Icon, indent }) => {
+          const isActive = pathname === href || (!indent && pathname.startsWith(href) && pathname !== href)
+            ? false
+            : pathname === href;
+          const isExactOrSub = pathname === href || (pathname.startsWith(href + '/') && href !== '/overview');
+          const active = pathname === href;
           return (
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 transition-all duration-150 group"
+              className="flex items-center gap-3 rounded-lg mb-0.5 transition-all duration-150"
               style={{
-                background: isActive
-                  ? 'rgba(198,167,105,0.15)'
-                  : 'transparent',
-                color: isActive ? 'var(--gold)' : 'rgba(255,255,255,0.6)',
-                borderLeft: isActive
-                  ? '2px solid var(--gold)'
-                  : '2px solid transparent',
+                padding: indent ? '5px 12px 5px 24px' : '10px 12px',
+                background: active ? 'rgba(198,167,105,0.15)' : 'transparent',
+                color: active ? 'var(--gold)' : indent ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.6)',
+                borderLeft: active ? '2px solid var(--gold)' : '2px solid transparent',
               }}
             >
               <Icon
-                size={16}
-                className="shrink-0 transition-colors"
-                style={{ color: isActive ? 'var(--gold)' : 'rgba(255,255,255,0.5)' }}
+                size={indent ? 12 : 16}
+                className="shrink-0"
+                style={{ color: active ? 'var(--gold)' : indent ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.5)' }}
               />
-              <span className="text-xs font-medium tracking-wide">{label}</span>
+              <span style={{ fontSize: indent ? 11 : 12 }} className="font-medium tracking-wide">{label}</span>
             </Link>
           );
         })}
