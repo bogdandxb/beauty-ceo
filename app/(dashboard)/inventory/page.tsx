@@ -165,7 +165,7 @@ export default function InventoryPage() {
   }
 
   const displayed = products.filter(p => p.product_type === tab);
-  const lowStock = products.filter(p => p.current_stock <= p.min_stock_alert);
+  const lowStock = products.filter(p => p.min_stock_alert > 0 && p.current_stock <= p.min_stock_alert);
   const expiringSoon = products.filter(p => { const d = daysUntilExpiry(p); return d !== null && d <= 90; });
   const totalValuePro = products.filter(p => p.product_type === 'professional').reduce((s, p) => s + (p.current_stock * (p.cost_per_unit || 0)), 0);
   const totalValueRetail = products.filter(p => p.product_type === 'retail').reduce((s, p) => s + (p.current_stock * (p.retail_price || 0)), 0);
