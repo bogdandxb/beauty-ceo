@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Plus, Edit2, Check, Package, AlertTriangle, ShoppingCart, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
 
 const GOLD = 'var(--gold)';
 const TAUPE = 'var(--taupe)';
@@ -194,10 +195,16 @@ export default function InventoryPage() {
           <h1 style={{ fontFamily: 'var(--font-cormorant)', fontSize: '2rem', fontWeight: 300, color: TAUPE, margin: '2px 0' }}>Stoc Produse</h1>
           <p style={{ fontSize: 13, color: TAUPE_LIGHT }}>{products.length} produse · {lowStock.length} sub minim · {expiringSoon.length} expiră în 90 zile</p>
         </div>
-        <button onClick={openAdd}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', background: GOLD, color: 'white', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-          <Plus size={14} /> Produs nou
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Link href="/inventory/facturi"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', border: '1px solid var(--beige)', borderRadius: 10, fontSize: 12, fontWeight: 600, color: TAUPE, textDecoration: 'none' }}>
+            🧾 Facturi
+          </Link>
+          <button onClick={openAdd}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', background: GOLD, color: 'white', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            <Plus size={14} /> Produs nou
+          </button>
+        </div>
       </div>
 
       {/* KPI-uri */}
