@@ -30,7 +30,7 @@ interface Appointment {
 }
 
 interface Client { id: string; first_name: string; last_name: string; phone: string | null; }
-interface Service { id: string; name: string; price: number; duration_minutes: number; }
+interface Service { id: string; name: string; price: number; duration_minutes: number; equipment_id: string | null; operator_cost: number; consumables_cost: number; other_costs: number; }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   scheduled:  { label: 'Programată',  color: '#3b82f6', bg: '#EFF6FF' },
@@ -48,7 +48,7 @@ const EMPTY_FORM = {
   service_id: '', service_name_manual: '',
   appointment_date: new Date().toISOString().slice(0, 10),
   start_time: '09:00', duration_minutes: '60',
-  price_estimate: '', notes: '', status: 'scheduled',
+  price_estimate: '', final_price: '', payment_method: 'cash', notes: '', status: 'scheduled',
 };
 
 function calcEndTime(startTime: string, durationMin: number): string {
@@ -116,7 +116,7 @@ export default function CalendarPage() {
     loadDay(selectedDate);
     Promise.all([
       sb().from('clients').select('id, first_name, last_name, phone').eq('is_active', true).order('first_name'),
-      sb().from('services').select('id, name, price, duration_minutes').eq('is_active', true).neq('is_archived', true).order('name'),
+      sb().from('services').select('id, name, price, duration_minutes, equipment_id, operator_cost, consumables_cost, other_costs').eq('is_active', true).neq('is_archived', true).order('name'),
     ]).then(([{ data: c }, { data: s }]) => {
       setClients((c as Client[]) || []);
       setServices((s as Service[]) || []);
@@ -152,6 +152,8 @@ export default function CalendarPage() {
       start_time: a.start_time.slice(0, 5),
       duration_minutes: String(a.duration_minutes),
       price_estimate: a.price_estimate ? String(a.price_estimate) : '',
+      final_price: a.price_estimate ? String(a.price_estimate) : '',
+      payment_method: 'cash',
       notes: a.notes || '',
       status: a.status,
     });
@@ -175,11 +177,40 @@ export default function CalendarPage() {
       notes: form.notes.trim() || null,
       status: form.status,
     };
+
     if (editId) {
       await sb().from('appointments').update(payload).eq('id', editId);
     } else {
       await sb().from('appointments').insert({ ...payload, is_demo: false });
     }
+
+    // Dacă statusul e "completed" și avem preț final → creăm treatment automat
+    if (form.status === 'completed' && form.client_id && form.service_id && form.final_price) {
+      const svc = services.find(s => s.id === form.service_id);
+      if (svc) {
+        const price = parseFloat(form.final_price);
+        const costSnapshot = (svc.operator_cost || 0) + (svc.consumables_cost || 0) + (svc.other_costs || 0);
+        await sb().from('treatments').insert({
+          client_id: form.client_id,
+          service_id: form.service_id,
+          treatment_date: form.appointment_date,
+          treatment_time: form.start_time,
+          service_name_snapshot: svc.name,
+          price_snapshot: svc.price,
+          cost_snapshot: costSnapshot,
+          duration_snapshot: dur,
+          final_price: price,
+          discount_value: svc.price > price ? svc.price - price : 0,
+          discount_type: svc.price > price ? 'manual' : null,
+          payment_method: form.payment_method,
+          technician_notes: form.notes.trim() || null,
+          equipment_id: svc.equipment_id || null,
+          status: 'completed',
+          is_demo: false,
+        });
+      }
+    }
+
     setSaving(false); setSaved(true);
     setTimeout(() => {
       setSaved(false); setShowForm(false);
@@ -397,7 +428,7 @@ export default function CalendarPage() {
               <label style={{ fontSize: 11, fontWeight: 600, color: TAUPE_LIGHT, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>SERVICIU</label>
               <select value={form.service_id} onChange={e => {
                 const s = services.find(s => s.id === e.target.value);
-                setForm(f => ({ ...f, service_id: e.target.value, duration_minutes: s ? String(s.duration_minutes) : f.duration_minutes, price_estimate: s ? String(s.price) : f.price_estimate }));
+                setForm(f => ({ ...f, service_id: e.target.value, duration_minutes: s ? String(s.duration_minutes) : f.duration_minutes, price_estimate: s ? String(s.price) : f.price_estimate, final_price: s ? String(s.price) : f.final_price }));
               }} style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--beige)', borderRadius: 8, fontSize: 13, color: TAUPE, background: 'white', outline: 'none' }}>
                 <option value="">— selectează sau scrie mai jos —</option>
                 {services.map(s => <option key={s.id} value={s.id}>{s.name} · {s.price.toLocaleString('ro-RO')} lei · {s.duration_minutes} min</option>)}
@@ -451,6 +482,32 @@ export default function CalendarPage() {
                 </select>
               </div>
             </div>
+
+            {/* Câmpuri extra când tratamentul e finalizat */}
+            {form.status === 'completed' && (
+              <div style={{ background: 'var(--ivory)', borderRadius: 10, padding: '14px', marginBottom: 12, border: '1px solid var(--beige)' }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: GOLD, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>✓ Tratament finalizat — completează pentru rapoarte</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: TAUPE_LIGHT, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>PREȚ FINAL (lei) *</label>
+                    <input type="number" value={form.final_price} onChange={e => setForm(f => ({ ...f, final_price: e.target.value }))} placeholder="ex: 350"
+                      style={{ width: '100%', padding: '10px 14px', border: `1px solid ${GOLD}`, borderRadius: 8, fontSize: 13, color: TAUPE, outline: 'none', boxSizing: 'border-box', background: 'white' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: TAUPE_LIGHT, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>METODĂ PLATĂ</label>
+                    <select value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value }))}
+                      style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--beige)', borderRadius: 8, fontSize: 13, color: TAUPE, background: 'white', outline: 'none' }}>
+                      <option value="cash">💵 Cash</option>
+                      <option value="card">💳 Card</option>
+                      <option value="transfer">🏦 Transfer</option>
+                    </select>
+                  </div>
+                </div>
+                {form.client_id && form.service_id && form.final_price && (
+                  <p style={{ fontSize: 11, color: '#22c55e', marginTop: 8 }}>✓ Se va înregistra automat în Venituri & ROI aparatură</p>
+                )}
+              </div>
+            )}
 
             {/* Note */}
             <div style={{ marginBottom: 20 }}>
