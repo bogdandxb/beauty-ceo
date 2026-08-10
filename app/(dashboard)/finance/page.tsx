@@ -55,7 +55,8 @@ export default function FinancePage() {
   async function loadData(year: number, month: number) {
     setLoading(true);
     const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endOfMonth = `${year}-${String(month).padStart(2, '0')}-31`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
     const startOfYear = `${year}-01-01`;
 
     const [{ data: tData }, { data: eData }, { data: tYear }, { data: eYear }] = await Promise.all([
