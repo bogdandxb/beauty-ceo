@@ -166,15 +166,16 @@ export default function FinancePage() {
           {/* Chart Revenue vs Cheltuieli */}
           <div style={{ background: 'white', border: '1px solid var(--beige)', borderRadius: 16, padding: '20px 20px 12px' }}>
             <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: GOLD, marginBottom: 16 }}>Revenue vs Cheltuieli — {new Date().getFullYear()}</p>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 80 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 80, overflow: 'hidden' }}>
               {monthly.map((m) => {
-                const revH = (m.revenue / maxRev) * 80;
-                const expH = (m.expenses / maxRev) * 80;
+                const revH = Math.max(0, (m.revenue / maxRev) * 76);
+                const expH = Math.max(0, (m.expenses / maxRev) * 76);
                 const isLast = m.month === currentMonthName;
                 return (
-                  <div key={m.month} style={{ flex: 1, display: 'flex', gap: 2, alignItems: 'flex-end', height: 80 }}>
-                    <div style={{ flex: 1, height: revH, background: isLast ? GOLD : 'var(--gold-pale)', borderRadius: '3px 3px 0 0' }} />
-                    <div style={{ flex: 1, height: expH, background: isLast ? 'var(--rose)' : '#F4DDD6', borderRadius: '3px 3px 0 0' }} />
+                  <div key={m.month} style={{ flex: 1, display: 'flex', gap: 2, alignItems: 'flex-end', height: 80, minWidth: 0 }}>
+                    {revH > 0 && <div style={{ flex: 1, height: revH, background: isLast ? GOLD : 'var(--gold-pale)', borderRadius: '3px 3px 0 0' }} />}
+                    {expH > 0 && <div style={{ flex: 1, height: expH, background: isLast ? 'var(--rose)' : '#F4DDD6', borderRadius: '3px 3px 0 0' }} />}
+                    {revH === 0 && expH === 0 && <div style={{ flex: 1 }} />}
                   </div>
                 );
               })}
