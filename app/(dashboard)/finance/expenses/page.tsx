@@ -36,12 +36,13 @@ export default function ExpensesPage() {
   const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
 
-  useEffect(() => { load(); }, [filterMonth, filterYear]);
+  useEffect(() => { load(filterMonth, filterYear); }, [filterMonth, filterYear]);
 
-  async function load() {
+  async function load(month: number, year: number) {
     setLoading(true);
-    const start = `${filterYear}-${String(filterMonth).padStart(2, '0')}-01`;
-    const end = `${filterYear}-${String(filterMonth).padStart(2, '0')}-31`;
+    const start = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
     const { data } = await sb().from('expenses').select('*').gte('expense_date', start).lte('expense_date', end).order('expense_date', { ascending: false });
     setExpenses((data as Expense[]) || []);
     setLoading(false);
@@ -63,7 +64,7 @@ export default function ExpensesPage() {
       await sb().from('expenses').insert({ ...payload, is_demo: false });
     }
     setSaving(false); setSaved(true);
-    setTimeout(() => { setSaved(false); setShowForm(false); load(); }, 800);
+    setTimeout(() => { setSaved(false); setShowForm(false); load(filterMonth, filterYear); }, 800);
   }
 
   const total = expenses.reduce((s, e) => s + e.amount, 0);
