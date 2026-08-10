@@ -25,6 +25,9 @@ interface Expense { amount: number; }
 export default function FinancePage() {
   const [tab, setTab] = useState<'overview' | 'income' | 'expenses'>('overview');
   const [loading, setLoading] = useState(true);
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
 
   const [revenue, setRevenue] = useState(0);
   const [cogs, setCogs] = useState(0);
@@ -37,14 +40,20 @@ export default function FinancePage() {
   const [treatmentsList, setTreatmentsList] = useState<{ service_name_snapshot: string; final_price: number; treatment_date: string; payment_method: string | null; client: { first_name: string; last_name: string } | null }[]>([]);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData(selectedYear, selectedMonth);
+  }, [selectedYear, selectedMonth]);
 
-  async function loadData() {
+  function changeMonth(delta: number) {
+    let m = selectedMonth + delta;
+    let y = selectedYear;
+    if (m < 1) { m = 12; y--; }
+    if (m > 12) { m = 1; y++; }
+    setSelectedMonth(m);
+    setSelectedYear(y);
+  }
+
+  async function loadData(year: number, month: number) {
     setLoading(true);
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
     const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
     const endOfMonth = `${year}-${String(month).padStart(2, '0')}-31`;
     const startOfYear = `${year}-01-01`;
@@ -52,8 +61,8 @@ export default function FinancePage() {
     const [{ data: tData }, { data: eData }, { data: tYear }, { data: eYear }] = await Promise.all([
       supabase().from('treatments').select('final_price, cost_snapshot, duration_snapshot').eq('status', 'completed').gte('treatment_date', startOfMonth).lte('treatment_date', endOfMonth),
       supabase().from('expenses').select('amount').gte('expense_date', startOfMonth).lte('expense_date', endOfMonth),
-      supabase().from('treatments').select('final_price, cost_snapshot, treatment_date').eq('status', 'completed').gte('treatment_date', startOfYear).order('treatment_date'),
-      supabase().from('expenses').select('amount, expense_date').gte('expense_date', startOfYear).order('expense_date'),
+      supabase().from('treatments').select('final_price, cost_snapshot, treatment_date').eq('status', 'completed').gte('treatment_date', startOfYear).lte('treatment_date', `${year}-12-31`).order('treatment_date'),
+      supabase().from('expenses').select('amount, expense_date').gte('expense_date', startOfYear).lte('expense_date', `${year}-12-31`).order('expense_date'),
     ]);
 
     const tList = (tData as Treatment[]) || [];
@@ -72,7 +81,8 @@ export default function FinancePage() {
 
     // Monthly aggregation for chart
     const monthMap: Record<number, { revenue: number; expenses: number }> = {};
-    for (let m = 1; m <= month; m++) monthMap[m] = { revenue: 0, expenses: 0 };
+    const maxMonth = year === now.getFullYear() ? now.getMonth() + 1 : 12;
+    for (let m = 1; m <= maxMonth; m++) monthMap[m] = { revenue: 0, expenses: 0 };
     ((tYear as { final_price: number; treatment_date: string }[]) || []).forEach(t => {
       const m = new Date(t.treatment_date).getMonth() + 1;
       if (monthMap[m]) monthMap[m].revenue += t.final_price;
@@ -90,8 +100,8 @@ export default function FinancePage() {
 
     // For tabs
     const [{ data: expFull }, { data: trFull }] = await Promise.all([
-      supabase().from('expenses').select('name, category, amount, expense_date, payment_method').gte('expense_date', startOfMonth).order('expense_date', { ascending: false }),
-      supabase().from('treatments').select('service_name_snapshot, final_price, treatment_date, payment_method, clients(first_name, last_name)').eq('status', 'completed').gte('treatment_date', startOfMonth).order('treatment_date', { ascending: false }),
+      supabase().from('expenses').select('name, category, amount, expense_date, payment_method').gte('expense_date', startOfMonth).lte('expense_date', endOfMonth).order('expense_date', { ascending: false }),
+      supabase().from('treatments').select('service_name_snapshot, final_price, treatment_date, payment_method, clients(first_name, last_name)').eq('status', 'completed').gte('treatment_date', startOfMonth).lte('treatment_date', endOfMonth).order('treatment_date', { ascending: false }),
     ]);
     setExpensesList((expFull as typeof expensesList) || []);
     setTreatmentsList(((trFull as unknown) as typeof treatmentsList) || []);
@@ -103,14 +113,21 @@ export default function FinancePage() {
   const gpMargin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
   const opMargin = revenue > 0 ? (operatingProfit / revenue) * 100 : 0;
   const maxRev = monthly.length > 0 ? Math.max(...monthly.map(m => m.revenue), 1) : 1;
-  const currentMonthName = MONTH_NAMES[new Date().getMonth()];
+  const currentMonthName = MONTH_NAMES[selectedMonth - 1];
 
   return (
     <div style={{ minHeight: '100vh', padding: '24px 16px', maxWidth: 900, margin: '0 auto' }}>
-      <div style={{ marginBottom: 24 }}>
-        <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: GOLD }}>Finanțe</p>
-        <h1 style={{ fontFamily: 'var(--font-cormorant)', fontSize: '2rem', fontWeight: 300, color: TAUPE, margin: '2px 0' }}>P&amp;L Dashboard</h1>
-        <p style={{ fontSize: 13, color: TAUPE_LIGHT }}>Luna aceasta · {currentMonthName} {new Date().getFullYear()}</p>
+      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: GOLD }}>Finanțe</p>
+          <h1 style={{ fontFamily: 'var(--font-cormorant)', fontSize: '2rem', fontWeight: 300, color: TAUPE, margin: '2px 0' }}>P&amp;L Dashboard</h1>
+          <p style={{ fontSize: 13, color: TAUPE_LIGHT }}>{currentMonthName} {selectedYear}</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', border: '1px solid var(--beige)', borderRadius: 10, padding: '6px 12px' }}>
+          <button onClick={() => changeMonth(-1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: TAUPE, padding: '0 4px' }}>‹</button>
+          <span style={{ fontSize: 13, fontWeight: 600, color: TAUPE, minWidth: 80, textAlign: 'center' }}>{currentMonthName} {selectedYear}</span>
+          <button onClick={() => changeMonth(1)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: TAUPE, padding: '0 4px' }}>›</button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', borderBottom: '1px solid var(--beige)', marginBottom: 24, gap: 0 }}>
